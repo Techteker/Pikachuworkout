@@ -18,17 +18,14 @@ jobs:
           channel: stable
       - name: Generate Android platform
         run: flutter create --platforms android .
-      - name: Prepare app authentication
+      - name: Fix generated project dependencies and source
         run: |
+          flutter pub add --dev flutter_lints
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('lib/main.dart')
+          p=Path('lib/pikachu_app.dart')
           s=p.read_text()
-          if "import 'auth_gate.dart';" not in s:
-              s=s.replace("import 'package:video_player/video_player.dart';", "import 'package:video_player/video_player.dart';\nimport 'auth_gate.dart';")
-          s=s.replace('home: const HomeShell(),','home: const AuthGate(),')
-          s=s.replace('const SizedBox...','const SizedBox(height: 25)')
-          s=s.replace('if(!mounted)return;','if(!mounted||!running)return;')
+          s=s.replace('child(SizedBox(', 'child: SizedBox(')
           p.write_text(s)
           PY
       - name: Get packages
