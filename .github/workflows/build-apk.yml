@@ -19,15 +19,16 @@ jobs:
       - name: Generate Android platform
         run: flutter create --platforms android .
       - name: Inject auth gate
-        run: python3 - <<'PY'
-from pathlib import Path
-p=Path('lib/main.dart')
-s=p.read_text()
-if "import 'auth_gate.dart';" not in s:
-    s=s.replace("import 'package:video_player/video_player.dart';", "import 'package:video_player/video_player.dart';\nimport 'auth_gate.dart';")
-s=s.replace('home: const HomeShell(),','home: const AuthGate(),')
-p.write_text(s)
-PY
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('lib/main.dart')
+          s=p.read_text()
+          if "import 'auth_gate.dart';" not in s:
+              s=s.replace("import 'package:video_player/video_player.dart';", "import 'package:video_player/video_player.dart';\nimport 'auth_gate.dart';")
+          s=s.replace('home: const HomeShell(),','home: const AuthGate(),')
+          p.write_text(s)
+          PY
       - name: Get packages
         run: flutter pub get
       - name: Analyze
