@@ -1,0 +1,48 @@
+name: Pikachu Workout Android Release
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.2'
+          channel: stable
+      - name: Generate Android platform
+        run: flutter create --platforms android .
+      - name: Inject auth gate
+        run: python3 - <<'PY'
+from pathlib import Path
+p=Path('lib/main.dart')
+s=p.read_text()
+if "import 'auth_gate.dart';" not in s:
+    s=s.replace("import 'package:video_player/video_player.dart';", "import 'package:video_player/video_player.dart';\nimport 'auth_gate.dart';")
+s=s.replace('home: const HomeShell(),','home: const AuthGate(),')
+p.write_text(s)
+PY
+      - name: Get packages
+        run: flutter pub get
+      - name: Analyze
+        run: flutter analyze
+      - name: Build release APK
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: flutter build apk --release --dart-define=SUPABASE_URL="$SUPABASE_URL" --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY"
+      - name: Prepare APK
+        run: cp build/app/outputs/flutter-apk/app-release.apk pikachu-workout-release.apk
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: Pikachu Workout v1.0.${{ github.run_number }}
+          generate_release_notes: true
+          files: pikachu-workout-release.apk
